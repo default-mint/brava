@@ -596,6 +596,8 @@ const PRODUCTS = [
     desc:'A lightweight sweat-wicking cap that keeps sun off your eyes and sweat off your brow. Adjustable back strap. One size.' },
   { slug:'sweatband', cat:'gear', kind:'Sweatband', name:'Sweatband', price:8.99, img:'sweatband.png',
     desc:'A soft terry headband that keeps sweat out of your eyes through the longest rallies. Stretchy, quick to rinse, stays put. One size.' },
+  { slug:'ebook', cat:'gear', kind:'Digital Guide (PDF)', name:'Padel Training Guide', price:9.05, img:'ebook.jpg',
+    desc:'A 6-week improvement plan with padel tactics, drills, and coach tips. Instant PDF download, delivered by email. No shipping.' },
 ];
 
 const PRODUCTS_INDEX = Object.fromEntries(PRODUCTS.map(p => [p.slug, p]));
@@ -676,6 +678,7 @@ function renderMosaic() {
     bag:       'wide',
     cap:       'rot-c off',
     sweatband: 'rot-a',
+    ebook:     'rot-b',
   };
   const parts = [];
   parts.push(feattileHTML(supp));                              // big 2x2 feature
@@ -689,6 +692,7 @@ function renderMosaic() {
   parts.push(ptileHTML(PRODUCTS_INDEX.cap, tileClass.cap));
   parts.push(wordtileHTML('fill-turq', 'social', true));
   parts.push(ptileHTML(PRODUCTS_INDEX.sweatband, tileClass.sweatband));
+  parts.push(ptileHTML(PRODUCTS_INDEX.ebook, tileClass.ebook));
   document.getElementById('mosaic').innerHTML = parts.join('');
 
   document.querySelectorAll('.ptile').forEach(card => {
