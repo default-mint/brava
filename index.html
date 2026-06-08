@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brava | Padel Gear &amp; Circulation Support</title>
+<meta name="description" content="Brava is a padel store. Overgrips, socks, towels, caps, bags, bands, plus Circulation, our blood-flow support for fast rallies and long social sessions. Padel is a party. Bring your A-game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ───────────────────────────────────────────────
+     BRAVA - Court Report Filmstrip (restyled)
+     Reuses Baseline's "Court Report Filmstrip" structure
+     per user request: 3 stacked banners, sticky nav w/ live
+     cart count, full-bleed hero, Circulation supplement
+     spotlight band, horizontal scroll-snap gear filmstrips,
+     product modal, right cart drawer + localStorage + toast.
+     Brand: Brava. Bold, social, playful padel store.
+     Palette: turquoise #12B2A6, pink #E8447F (loud sale strip),
+     off-white #F7F5F0, navy ink #16263A, aqua wash #DDF1EE.
+     Backgrounds are never flat (washes + dot/court texture).
+     Type: Unbounded (display) + Onest (body).
+     Voice: bold, social, playful. "Padel is a party."
+     ─────────────────────────────────────────────── */
+  :root {
+    --turq: #12B2A6;
+    --turq-deep: #0C8C82;
+    --pink: #E8447F;
+    --pink-deep: #C92E66;
+    --cream: #F7F5F0;
+    --paper: #FFFFFF;
+    --aqua: #DDF1EE;
+    --ink: #16263A;
+    --ink-soft: rgba(22, 38, 58, 0.62);
+    --line: rgba(22, 38, 58, 0.14);
+    --line-soft: rgba(22, 38, 58, 0.07);
+    --error: #C92E66;
+    --display: 'Unbounded', system-ui, sans-serif;
+    --body: 'Onest', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--body);
+    color: var(--ink);
+    background: var(--cream);
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  /* ───── Banners ───── */
+  .b-help {
+    background: var(--paper); color: var(--ink);
+    padding: 7px 16px; text-align: center;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .b-help a { color: var(--turq-deep); font-weight: 700; margin-left: 8px; }
+  .b-help a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .b-loud {
+    background: var(--pink); color: #fff;
+    text-align: center; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700;
+    overflow: hidden; position: relative;
+  }
+  .b-loud::before, .b-loud::after { content:''; position:absolute; top:0; bottom:0; width:70px; z-index:2; pointer-events:none; }
+  .b-loud::before { left:0; background: linear-gradient(to right, var(--pink), transparent); }
+  .b-loud::after { right:0; background: linear-gradient(to left, var(--pink), transparent); }
+  .b-loud-track { position: relative; height: 40px; }
+  .loud-msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; white-space:nowrap; opacity:0; transform:translateY(8px); transition:opacity .5s ease, transform .55s cubic-bezier(.2,.7,.2,1); padding:0 16px; }
+  .loud-msg.active { opacity:1; transform:translateY(0); }
+  .loud-msg .ball { display:inline-block; width:7px; height:7px; border-radius:999px; background: #fff; margin-right:12px; vertical-align:middle; animation: bounce 1.4s ease-in-out infinite; }
+  @keyframes bounce { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-3px);} }
+
+  .b-info {
+    background: var(--ink); color: var(--cream);
+    padding: 8px 16px; text-align: center;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500;
+  }
+  .b-info-track { display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; }
+  .b-info-track .dot { color: var(--turq); opacity: .9; }
+  @media (max-width: 700px) {
+    .b-help, .b-info { font-size: 10px; letter-spacing: 0.12em; }
+    .b-loud { font-size: 10.5px; letter-spacing: 0.1em; }
+    .b-loud-track { height: 36px; }
+    .b-loud::before, .b-loud::after { width: 28px; }
+  }
+
+  /* ───── Nav ───── */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px clamp(18px, 4vw, 56px);
+    background: rgba(247, 245, 240, 0.9);
+    backdrop-filter: saturate(150%) blur(10px);
+    -webkit-backdrop-filter: saturate(150%) blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .wordmark {
+    font-family: var(--display); font-weight: 800;
+    font-size: 24px; letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .wordmark .mk-dot { width: 13px; height: 13px; border-radius: 999px; background: var(--turq); border: 2px solid var(--pink); display:inline-block; }
+  .navlinks { display: flex; gap: clamp(14px, 2.2vw, 30px); font-size: 13px; font-weight: 600; }
+  .navlinks a { transition: color .2s; }
+  .navlinks a:hover { color: var(--turq-deep); }
+  .bag-btn { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+  .bag-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; padding: 0 6px;
+    background: var(--pink); color: #fff; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+  }
+  .bag-count.empty { background: var(--line); color: var(--ink-soft); }
+  @media (max-width: 820px) { .navlinks { display: none; } }
+
+  /* ───── Hero ───── */
+  .hero {
+    position: relative;
+    min-height: clamp(440px, 72vh, 660px);
+    display: flex; align-items: flex-end;
+    overflow: hidden;
+    color: #fff;
+  }
+  .hero img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 45%;
+    z-index: 0;
+  }
+  .hero::after {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(to top, rgba(12,18,30,0.86) 0%, rgba(18,178,166,0.22) 55%, rgba(232,68,127,0.1) 100%);
+  }
+  .hero-inner {
+    position: relative; z-index: 2;
+    padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 56px) clamp(36px, 5vw, 64px);
+    max-width: 780px;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; font-weight: 700;
+    color: var(--turq);
+    margin-bottom: 18px;
+  }
+  .hero-eyebrow::before { content:''; width: 22px; height: 2px; background: var(--pink); display:inline-block; }
+  .hero h1 {
+    font-family: var(--display); font-weight: 800;
+    font-size: clamp(38px, 6.6vw, 80px);
+    line-height: 0.98; letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+  .hero h1 .line2 { color: var(--turq); }
+  .hero p { font-size: clamp(15px, 1.6vw, 18px); max-width: 540px; color: rgba(255,255,255,0.92); margin-bottom: 26px; }
+  .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 14px;
+    padding: 15px 28px; border-radius: 999px;
+    transition: transform .2s, background .2s, color .2s;
+  }
+  .btn-primary { background: var(--pink); color: #fff; }
+  .btn-primary:hover { transform: translateY(-2px); background: var(--pink-deep); }
+  .btn-ghost { background: rgba(255,255,255,0.12); color:#fff; border: 1px solid rgba(255,255,255,0.5); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.22); }
+
+  /* ───── Section frame ───── */
+  .section { padding: clamp(48px, 7vw, 92px) clamp(18px, 4vw, 56px); }
+  .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: clamp(22px, 3vw, 36px); max-width: 1320px; margin-left:auto; margin-right:auto; }
+  .sec-kicker { font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase; font-weight: 700; color: var(--turq-deep); margin-bottom: 10px; }
+  .sec-title { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 4.2vw, 50px); line-height: 1; letter-spacing: -0.02em; }
+  .sec-note { font-size: 13px; color: var(--ink-soft); max-width: 320px; }
+
+  /* ───── Circulation spotlight ───── */
+  .spotlight {
+    background:
+      radial-gradient(circle at 85% 12%, rgba(232,68,127,0.35), transparent 42%),
+      radial-gradient(circle at 12% 88%, rgba(221,241,238,0.18), transparent 40%),
+      linear-gradient(135deg, var(--turq) 0%, var(--turq-deep) 100%);
+    color: #fff;
+    padding: clamp(48px, 7vw, 96px) clamp(18px, 4vw, 56px);
+    position: relative; overflow: hidden;
+  }
+  .spotlight::before {
+    content:''; position:absolute; left: 0; right: 0; top: 50%;
+    height: 2px; background: rgba(255,255,255,0.18);
+  }
+  .spot-grid {
+    max-width: 1180px; margin: 0 auto;
+    display: grid; grid-template-columns: 0.85fr 1.15fr; gap: clamp(32px, 5vw, 72px);
+    align-items: center; position: relative; z-index: 1;
+  }
+  @media (max-width: 880px) { .spot-grid { grid-template-columns: 1fr; } }
+  .spot-imgwrap {
+    background: rgba(255,255,255,0.96); border-radius: 22px;
+    padding: 18px; aspect-ratio: 1/1; max-width: 420px; width: 100%;
+    margin: 0 auto;
+    box-shadow: 0 24px 60px rgba(12,18,30,0.3);
+  }
+  .spot-imgwrap img { width: 100%; height: 100%; object-fit: contain; }
+  .spot-kicker { display:inline-flex; align-items:center; gap:8px; font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase; font-weight: 700; color: #fff; background: var(--pink); padding: 6px 12px; border-radius: 999px; margin-bottom: 16px; }
+  .spot-title { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 5vw, 58px); line-height: 0.98; letter-spacing: -0.03em; margin-bottom: 16px; }
+  .spot-lead { font-size: clamp(15px, 1.5vw, 17px); color: rgba(255,255,255,0.94); margin-bottom: 22px; max-width: 520px; }
+  .spot-benefits { list-style: none; display: grid; gap: 10px; margin-bottom: 24px; max-width: 540px; }
+  .spot-benefits li { display: flex; gap: 12px; font-size: 14px; color: rgba(255,255,255,0.96); }
+  .spot-benefits li::before { content:''; flex-shrink:0; margin-top: 7px; width: 8px; height: 8px; border-radius: 999px; background: var(--pink); }
+  .spot-ing { font-size: 12.5px; color: rgba(255,255,255,0.82); letter-spacing: 0.02em; margin-bottom: 26px; max-width: 540px; }
+  .spot-ing strong { color: #fff; font-weight: 700; }
+  .spot-buy { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .spot-price { font-family: var(--display); font-weight: 700; font-size: 30px; }
+  .spot-price span { font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.7); font-family: var(--body); }
+  .spot-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .spot-actions .btn-primary { background: var(--pink); }
+  .spot-actions .btn-pack { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.55); color:#fff; }
+  .spot-actions .btn-pack:hover { background: rgba(255,255,255,0.24); }
+  .spot-disc { font-size: 11px; color: rgba(255,255,255,0.66); margin-top: 18px; max-width: 540px; line-height: 1.55; }
+
+  /* ───── Filmstrips ───── */
+  .strip-wrap { max-width: 1320px; margin: 0 auto; }
+  .strip {
+    display: flex; gap: 20px;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    padding: 6px 4px 22px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: var(--turq) var(--aqua);
+  }
+  .strip::-webkit-scrollbar { height: 8px; }
+  .strip::-webkit-scrollbar-track { background: var(--aqua); border-radius: 999px; }
+  .strip::-webkit-scrollbar-thumb { background: var(--turq); border-radius: 999px; }
+  .pcard {
+    flex: 0 0 clamp(230px, 30vw, 300px);
+    scroll-snap-align: start;
+    background: var(--paper);
+    border: 1px solid var(--line-soft);
+    border-radius: 18px; overflow: hidden;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s;
+  }
+  .pcard:hover { transform: translateY(-5px); box-shadow: 0 16px 36px rgba(22,38,58,0.14); }
+  .pcard-img { aspect-ratio: 1/1; background: var(--aqua); overflow: hidden; position: relative; }
+  .pcard-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+  .pcard:hover .pcard-img img { transform: scale(1.05); }
+  .pcard-tag {
+    position: absolute; top: 12px; left: 12px;
+    background: var(--ink); color:#fff;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .pcard-add {
+    position: absolute; bottom: 12px; right: 12px;
+    width: 40px; height: 40px; border-radius: 999px;
+    background: var(--pink); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 600; line-height: 1;
+    opacity: 0; transform: translateY(6px); transition: opacity .25s, transform .25s, background .2s;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+  }
+  .pcard:hover .pcard-add { opacity: 1; transform: translateY(0); }
+  .pcard-add:hover { background: var(--pink-deep); }
+  .pcard-body { padding: 16px 16px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .pcard-name { font-family: var(--display); font-weight: 600; font-size: 18px; line-height: 1.12; letter-spacing: -0.01em; }
+  .pcard-kind { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--turq-deep); font-weight: 700; }
+  .pcard-desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; flex: 1; }
+  .pcard-price { font-family: var(--display); font-weight: 700; font-size: 16px; margin-top: 4px; }
+  .strip-hint { font-size: 11px; color: var(--ink-soft); letter-spacing: 0.1em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .strip-hint .arrow { animation: nudge 1.6s ease-in-out infinite; }
+  @keyframes nudge { 0%,100%{ transform: translateX(0);} 50%{ transform: translateX(5px);} }
+
+  .strips-section { background: var(--cream); }
+
+  /* ───── Promise trio ───── */
+  .promise { background: var(--aqua); }
+  .promise-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(24px, 4vw, 56px); }
+  @media (max-width: 760px) { .promise-inner { grid-template-columns: 1fr; } }
+  .promise-item .pno { font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--pink); letter-spacing: 0.2em; margin-bottom: 14px; display:block; }
+  .promise-item h4 { font-family: var(--display); font-weight: 600; font-size: 21px; margin-bottom: 10px; letter-spacing: -0.01em; }
+  .promise-item p { font-size: 14px; color: var(--ink-soft); line-height: 1.7; }
+
+  /* ───── Reviews ───── */
+  .reviews { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 880px) { .reviews { grid-template-columns: 1fr; } }
+  .review { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 18px; padding: 26px; }
+  .review p { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+  .review-by { display: flex; align-items: center; gap: 12px; }
+  .review-by img { width: 42px; height: 42px; border-radius: 999px; object-fit: cover; }
+  .review-by .rb-name { font-weight: 700; font-size: 14px; }
+  .review-by .rb-meta { font-size: 12px; color: var(--ink-soft); }
+
+  /* ───── Footer ───── */
+  footer { background: var(--ink); color: var(--cream); padding: clamp(52px, 7vw, 92px) clamp(18px, 4vw, 56px) 30px; }
+  .foot-grid { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: clamp(28px, 5vw, 72px); padding-bottom: 44px; border-bottom: 1px solid rgba(255,255,255,0.16); }
+  @media (max-width: 880px) { .foot-grid { grid-template-columns: 1fr 1fr; gap: 30px; } }
+  .foot-mark { font-family: var(--display); font-weight: 800; font-size: 28px; margin-bottom: 14px; display:flex; align-items:center; gap:9px; letter-spacing: -0.02em; }
+  .foot-mark .mk-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--turq); border: 2px solid var(--pink); display:inline-block; }
+  .foot-blurb { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.6); max-width: 320px; }
+  .foot-h { font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--turq); margin-bottom: 16px; font-weight: 700; }
+  .foot-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .foot-list a, .foot-list span { font-size: 13px; color: rgba(255,255,255,0.78); transition: color .2s; }
+  .foot-list a:hover { color: #fff; }
+  .foot-disc { max-width: 1320px; margin: 22px auto 0; font-size: 11px; color: rgba(255,255,255,0.42); line-height: 1.6; }
+  .foot-bottom { max-width: 1320px; margin: 14px auto 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.04em; }
+
+  /* ───── Modal ───── */
+  .modal-bg { position: fixed; inset: 0; background: rgba(12,18,30,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .28s; z-index: 90; }
+  .modal-bg.open { opacity: 1; pointer-events: auto; }
+  .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, calc(-50% + 24px)); width: min(880px, calc(100vw - 32px)); max-height: calc(100vh - 64px); background: var(--paper); z-index: 91; opacity: 0; pointer-events: none; transition: transform .36s cubic-bezier(.2,.7,.2,1), opacity .28s; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; border-radius: 22px; }
+  .modal.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+  .modal-img { background: var(--aqua); overflow: hidden; aspect-ratio: 1/1; }
+  .modal-img img { width: 100%; height: 100%; object-fit: cover; }
+  .modal-info { padding: clamp(24px, 3.4vw, 42px); display: flex; flex-direction: column; overflow-y: auto; }
+  .modal-kind { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--turq-deep); font-weight: 700; margin-bottom: 12px; }
+  .modal-name { font-family: var(--display); font-weight: 700; font-size: clamp(26px, 3.4vw, 40px); line-height: 1; margin-bottom: 10px; letter-spacing: -0.02em; }
+  .modal-price { font-family: var(--display); font-weight: 700; font-size: 20px; margin-bottom: 20px; }
+  .modal-desc { font-size: 14px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+  .modal-disc { font-size: 11px; line-height: 1.55; color: var(--ink-soft); margin-bottom: 22px; }
+  .opt-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft); font-weight: 700; margin-bottom: 12px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .opt-chip { padding: 11px 18px; border: 1px solid var(--line); background: transparent; font-size: 13px; font-weight: 600; border-radius: 999px; transition: all .18s; }
+  .opt-chip:hover { border-color: var(--turq); }
+  .opt-chip.selected { background: var(--turq); color: #fff; border-color: var(--turq); }
+  .modal-add { background: var(--ink); color: #fff; padding: 16px; font-size: 13px; letter-spacing: 0.08em; font-weight: 700; border-radius: 999px; margin-top: auto; transition: background .2s; }
+  .modal-add:hover { background: var(--pink); }
+  .modal-add:disabled { background: var(--line); color: var(--ink-soft); cursor: not-allowed; }
+  .modal-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 999px; background: var(--paper); display: flex; align-items: center; justify-content: center; z-index: 2; box-shadow: 0 2px 12px rgba(0,0,0,0.16); transition: transform .2s; }
+  .modal-close:hover { transform: rotate(90deg); }
+  @media (max-width: 760px) { .modal { grid-template-columns: 1fr; max-height: 92vh; overflow-y: auto; } .modal-img { aspect-ratio: 16/10; } }
+
+  /* ───── Cart drawer ───── */
+  .cart { position: fixed; top: 0; right: 0; width: min(440px, 92vw); height: 100vh; height: 100dvh; background: var(--cream); z-index: 92; transform: translateX(100%); transition: transform .36s cubic-bezier(.2,.7,.2,1); display: flex; flex-direction: column; box-shadow: -2px 0 28px rgba(0,0,0,0.12); }
+  .cart.open { transform: translateX(0); }
+  .cart-header { padding: 22px 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .cart-title { font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: -0.02em; }
+  .cart-close { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+  .cart-close:hover { color: var(--ink); }
+  .cart-items { flex: 1; overflow-y: auto; padding: 4px 24px; }
+  .cart-empty { padding: 70px 0; text-align: center; color: var(--ink-soft); }
+  .cart-empty p { font-family: var(--display); font-weight: 600; font-size: 19px; margin-bottom: 10px; color: var(--ink); letter-spacing: -0.01em; }
+  .cart-empty span { font-size: 13px; }
+  .cart-line { display: grid; grid-template-columns: 70px 1fr; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line-soft); }
+  .cart-line-img { width: 70px; height: 70px; border-radius: 12px; overflow: hidden; background: var(--aqua); }
+  .cart-line-img img { width: 100%; height: 100%; object-fit: cover; }
+  .cart-line-info { display: flex; flex-direction: column; justify-content: space-between; }
+  .cart-line-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .cart-line-name { font-family: var(--display); font-weight: 600; font-size: 15px; line-height: 1.12; letter-spacing: -0.01em; }
+  .cart-line-meta { font-size: 11px; color: var(--ink-soft); margin-top: 3px; letter-spacing: 0.04em; }
+  .cart-line-price { font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .cart-line-bottom { display: flex; justify-content: space-between; align-items: center; }
+  .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 0 4px; }
+  .qty button { width: 26px; height: 26px; color: var(--ink); font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .qty button:hover { color: var(--turq-deep); }
+  .qty span { padding: 0 8px; font-size: 13px; min-width: 18px; text-align: center; }
+  .cart-remove { font-size: 11px; letter-spacing: 0.06em; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; }
+  .cart-remove:hover { color: var(--error); }
+  .cart-foot { border-top: 1px solid var(--line); padding: 18px 24px 24px; background: var(--paper); }
+  .total-line { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 14px; }
+  .total-line .tl { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); }
+  .total-line .tv { font-family: var(--display); font-weight: 700; font-size: 27px; }
+  .cart-checkout { width: 100%; background: var(--turq); color: #fff; padding: 17px; font-size: 13px; letter-spacing: 0.06em; font-weight: 700; text-align: center; display: block; border-radius: 999px; transition: background .2s; }
+  .cart-checkout:hover { background: var(--turq-deep); }
+  .cart-hint { font-size: 11px; color: var(--ink-soft); text-align: center; margin-top: 12px; line-height: 1.6; }
+
+  /* ───── Toast ───── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: var(--ink); color: #fff; padding: 14px 22px; font-size: 13px; font-weight: 600; z-index: 100; opacity: 0; pointer-events: none; transition: opacity .24s, transform .36s cubic-bezier(.2,.7,.2,1); border-radius: 999px; display:flex; align-items:center; gap:10px; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast .ok { width: 18px; height: 18px; border-radius: 999px; background: var(--turq); color: #fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+
+  /* ───── Reveal ───── */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { transition: none; opacity: 1; transform: none; }
+    .loud-msg .ball, .strip-hint .arrow { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="b-help">Need Help? <a href="tel:1231231234">123-123-1234</a></div>
+<div class="b-loud">
+  <div class="b-loud-track">
+    <span class="loud-msg active"><span class="ball"></span>Free Shipping on Orders Over $100</span>
+    <span class="loud-msg"><span class="ball"></span>Circulation 3 Bottles: $240, That's $80 a Bottle</span>
+    <span class="loud-msg"><span class="ball"></span>Padel Is a Party. Bring Your A-Game.</span>
+    <span class="loud-msg"><span class="ball"></span>Code BRA10 for 10% Off at Checkout</span>
+    <span class="loud-msg"><span class="ball"></span>30-Day Returns on Every Order</span>
+  </div>
+</div>
+<div class="b-info">
+  <div class="b-info-track">
+    <span>Free Shipping Over $100</span><span class="dot">·</span>
+    <span>30-Day Returns</span><span class="dot">·</span>
+    <span>US Shipping</span><span class="dot">·</span>
+    <span>Secure Checkout</span>
+  </div>
+</div>
+
+<header class="nav">
+  <a href="#" class="wordmark"><span class="mk-dot"></span>Brava</a>
+  <nav class="navlinks">
+    <a href="#circulation">Circulation</a>
+    <a href="#oncourt">On Court</a>
+    <a href="#promise">Why Brava</a>
+    <a href="#reviews">Players</a>
+  </nav>
+  <button class="bag-btn" id="bagOpen" aria-label="Open bag">
+    <span>Bag</span><span class="bag-count empty" id="bagCount">0</span>
+  </button>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <img src="images/hero.jpg" alt="Padel players on court" loading="eager">
+  <div class="hero-inner">
+    <span class="hero-eyebrow">Padel Gear · Built for the Social Game</span>
+    <h1>Padel is a party.<br><span class="line2">Bring your A-game.</span></h1>
+    <p>The grips, socks, towels and bags that get you on court, plus Circulation, our blood-flow support for fast rallies and long social sessions. Loud, simple, ready to play.</p>
+    <div class="hero-cta">
+      <a href="#circulation" class="btn btn-primary">Meet Circulation</a>
+      <a href="#oncourt" class="btn btn-ghost">Shop the Gear</a>
+    </div>
+  </div>
+</section>
+
+<!-- CIRCULATION SPOTLIGHT -->
+<section class="spotlight" id="circulation">
+  <div class="spot-grid">
+    <div class="spot-imgwrap reveal">
+      <img src="images/circulation.png" alt="Circulation blood-flow support supplement bottle">
+    </div>
+    <div class="reveal">
+      <span class="spot-kicker">The Featured Formula</span>
+      <h2 class="spot-title">Circulation</h2>
+      <p class="spot-lead">A blood-flow and circulation supplement, built for padel. It supports circulation and stamina through fast rallies and long social sessions, so you have the legs you want at the end of the night.</p>
+      <ul class="spot-benefits">
+        <li>Supports healthy circulation and blood flow</li>
+        <li>Supports stamina through fast rallies and long sessions</li>
+        <li>Easy to add to your pre-court routine</li>
+      </ul>
+      <p class="spot-ing"><strong>Inside:</strong> L-Citrulline · Beetroot Extract · Ginkgo Biloba · Cayenne · Vitamin B12.</p>
+      <div class="spot-buy">
+        <div class="spot-price" id="spotPrice">$240 <span>/ 3 bottles</span></div>
+      </div>
+      <div class="spot-actions" id="spotTiers" style="margin-top:18px;">
+        <button class="btn btn-pack" data-tier="1">1 Bottle, $149</button>
+        <button class="btn btn-pack" data-tier="2">2 Bottles, $180</button>
+        <button class="btn btn-primary" data-tier="3">3 Bottles, $240</button>
+      </div>
+      <div class="spot-actions" style="margin-top:14px;">
+        <button class="btn btn-primary" id="spotAdd">Add 3 Bottles, $240</button>
+      </div>
+      <p class="spot-disc">A dietary supplement. These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease. Consult your healthcare provider before use, especially if pregnant, nursing, or taking medication.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ON-COURT FILMSTRIP -->
+<section class="section strips-section" id="oncourt">
+  <div class="sec-head">
+    <div>
+      <p class="sec-kicker">Filmstrip · On Court</p>
+      <h2 class="sec-title">On-Court Gear</h2>
+    </div>
+    <div class="strip-hint">Scroll <span class="arrow">→</span></div>
+  </div>
+  <div class="strip-wrap">
+    <div class="strip" id="stripGear"></div>
+  </div>
+</section>
+
+<!-- PROMISE TRIO -->
+<section class="section promise" id="promise">
+  <div class="sec-head" style="margin-bottom: clamp(28px,4vw,44px);">
+    <div>
+      <p class="sec-kicker">Why Brava</p>
+      <h2 class="sec-title">Loud gear, no spin.</h2>
+    </div>
+  </div>
+  <div class="promise-inner">
+    <div class="promise-item reveal">
+      <span class="pno">01</span>
+      <h4>A short, fun kit</h4>
+      <p>We carry what you actually grab on the way out the door: overgrips, socks, a towel, a cap, a bag, bands. No filler, no fifty colorways you'll never buy.</p>
+    </div>
+    <div class="promise-item reveal">
+      <span class="pno">02</span>
+      <h4>Honest about Circulation</h4>
+      <p>Circulation is a supplement, not a miracle. We name every ingredient, we don't print dosages we can't stand behind, and we never claim it treats disease.</p>
+    </div>
+    <div class="promise-item reveal">
+      <span class="pno">03</span>
+      <h4>Easy to live with</h4>
+      <p>Free US shipping over $100, a flat $7.99 below it, and 30 days to send anything back. Questions go to a human at help@brava.com.</p>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="section" id="reviews">
+  <div class="sec-head">
+    <div>
+      <p class="sec-kicker">From the courts</p>
+      <h2 class="sec-title">Player notes</h2>
+    </div>
+    <p class="sec-note">A few notes from players who shop the kit. Shared with permission.</p>
+  </div>
+  <div class="reviews">
+    <div class="review reveal">
+      <p>"The overgrips are the ones I keep going back to. Tacky without being sticky, and a 3-pack lasts me weeks of open play."</p>
+      <div class="review-by">
+        <img src="images/face1.jpg" alt="Player headshot">
+        <div><div class="rb-name">Marcus T.</div><div class="rb-meta">Verified buyer</div></div>
+      </div>
+    </div>
+    <div class="review reveal">
+      <p>"I take Circulation before our Saturday social. Can't make big claims, but my legs feel fresher into the later games. Easy to add to the morning."</p>
+      <div class="review-by">
+        <img src="images/face2.jpg" alt="Player headshot">
+        <div><div class="rb-name">Dana R.</div><div class="rb-meta">Verified buyer</div></div>
+      </div>
+    </div>
+    <div class="review reveal">
+      <p>"The racket bag holds two paddles, a towel, balls and my keys. Lives in the car now. Simple and it does the job."</p>
+      <div class="review-by">
+        <img src="images/face3.jpg" alt="Player headshot">
+        <div><div class="rb-name">Priya S.</div><div class="rb-meta">Verified buyer</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-grid">
+    <div>
+      <div class="foot-mark"><span class="mk-dot"></span>Brava</div>
+      <p class="foot-blurb">A padel store. A short, fun kit and Circulation, our blood-flow support for fast rallies and long social sessions. Free US shipping over $100.</p>
+    </div>
+    <div>
+      <p class="foot-h">Shop</p>
+      <ul class="foot-list">
+        <li><a href="#circulation">Circulation</a></li>
+        <li><a href="#oncourt">On-Court Gear</a></li>
+        <li><a href="#promise">Why Brava</a></li>
+        <li><a href="#reviews">Players</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-h">Help</p>
+      <ul class="foot-list">
+        <li><a href="shipping.html">Shipping</a></li>
+        <li><a href="returns.html">Returns</a></li>
+        <li><a href="mailto:help@brava.com">Contact</a></li>
+        <li><a href="tel:1231231234">123-123-1234</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-h">Legal</p>
+      <ul class="foot-list">
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="foot-disc">Circulation is a dietary supplement. These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.</p>
+  <div class="foot-bottom">
+    <span>© <span id="year"></span> PLACEHOLDER LLC</span>
+    <span>123 Main Street, Placeholder, State 10101</span>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <button class="modal-close" id="modalClose" aria-label="Close">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="1.6"/></svg>
+  </button>
+  <div class="modal-img"><img id="modalImg" alt=""></div>
+  <div class="modal-info">
+    <div class="modal-kind" id="modalKind"></div>
+    <h3 class="modal-name" id="modalName"></h3>
+    <div class="modal-price" id="modalPrice"></div>
+    <p class="modal-desc" id="modalDesc"></p>
+    <p class="modal-disc" id="modalDisc" hidden>A dietary supplement. These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease. Consult your healthcare provider before use, especially if pregnant, nursing, or taking medication.</p>
+    <div id="optWrap" hidden>
+      <div class="opt-label" id="optLabel">Size</div>
+      <div class="opts" id="opts"></div>
+    </div>
+    <button class="modal-add" id="modalAdd">Add to Bag</button>
+  </div>
+</div>
+
+<!-- CART -->
+<aside class="cart" id="cart" aria-hidden="true">
+  <div class="cart-header">
+    <h3 class="cart-title">Your Bag</h3>
+    <button class="cart-close" id="cartClose">Close</button>
+  </div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="cart-foot" id="cartFoot" hidden>
+    <div class="total-line"><span class="tl">Subtotal</span><span class="tv" id="cartTotal">$0</span></div>
+    <a href="checkout.html" class="cart-checkout">Checkout</a>
+    <p class="cart-hint">Shipping and tax calculated at checkout. Free US shipping over $100.</p>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PRODUCTS = [
+  { slug:'circulation', cat:'supplement', kind:'Blood Flow & Circulation', name:'Circulation', price:240.00, img:'circulation.png', supplement:true,
+    desc:'A blood-flow and circulation supplement built for padel. It supports circulation and stamina through fast rallies and long social sessions. Inside: L-Citrulline, Beetroot Extract, Ginkgo Biloba, Cayenne, and Vitamin B12.' },
+
+  // On-court gear
+  { slug:'overgrip', cat:'gear', kind:'Overgrip 3-Pack', name:'Padel Overgrip 3-Pack', price:11.99, img:'overgrip.png',
+    desc:'A 3-pack of cushioned overgrips that wrap your padel handle for a tackier, more comfortable hold. Soft feel, sweat-friendly surface, three rolls per pack. One size.' },
+  { slug:'wristband', cat:'gear', kind:'Wristband Pair', name:'Performance Wristband Pair', price:9.99, img:'wristband.png',
+    desc:'A pair of terry wristbands that catch sweat before it reaches your grip. Soft, stretchy, and quick to rinse. Sold as a pair. One size.' },
+  { slug:'socks', cat:'gear', kind:'Crew Socks', name:'Court Crew Socks', price:14.99, img:'socks.png',
+    desc:'Cushioned crew socks with a reinforced heel and toe and a breathable mid-foot. Stay-up cuff for long sessions. Choose your size below.' },
+  { slug:'towel', cat:'gear', kind:'Court Towel', name:'Microfiber Court Towel', price:16.99, img:'towel.png',
+    desc:'A quick-drying microfiber towel that packs small and dries fast between games. Folds into a side pocket without soaking your bag. One size.' },
+  { slug:'bag', cat:'gear', kind:'Racket Bag', name:'Padel Racket Bag', price:44.99, img:'bag.png',
+    desc:'A lightweight padel racket bag with an adjustable strap. Holds a couple of paddles, a towel, balls, a bottle, and your keys. Lives in the car. One size.' },
+  { slug:'cap', cat:'gear', kind:'Sport Cap', name:'Sport Cap', price:21.99, img:'cap.png',
+    desc:'A lightweight sweat-wicking cap that keeps sun off your eyes and sweat off your brow. Adjustable back strap. One size.' },
+  { slug:'sweatband', cat:'gear', kind:'Sweatband', name:'Sweatband', price:8.99, img:'sweatband.png',
+    desc:'A soft terry headband that keeps sweat out of your eyes through the longest rallies. Stretchy, quick to rinse, stays put. One size.' },
+];
+
+const PRODUCTS_INDEX = Object.fromEntries(PRODUCTS.map(p => [p.slug, p]));
+const SUPP_TIERS = [
+  { id:'1', label:'1 Bottle',  price:149.00 },
+  { id:'2', label:'2 Bottles', price:180.00 },
+  { id:'3', label:'3 Bottles', price:240.00 },
+];
+const SUPP_DEFAULT = '3';
+const VARIANTS = {
+  socks: { label: 'Size', options: ['S/M', 'L/XL'] },
+  circulation: { label: 'Supply', tiers: SUPP_TIERS, defaultId: SUPP_DEFAULT },
+};
+const STORAGE_KEY = 'brava_cart';
+
+function loadCart() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function saveCart(c) { localStorage.setItem(STORAGE_KEY, JSON.stringify(c)); }
+let cart = loadCart();
+
+function fmt(n) { return '$' + n.toFixed(2).replace(/\.00$/, ''); }
+function cartTotal(c) { return c.reduce((s, l) => s + l.price * l.qty, 0); }
+
+// ─── Filmstrip ───
+function cardHTML(p) {
+  return `
+  <article class="pcard" data-slug="${p.slug}">
+    <div class="pcard-img">
+      <img src="images/${p.img}" alt="${p.name}" loading="lazy">
+      <span class="pcard-tag">${p.kind}</span>
+      <button class="pcard-add" type="button" data-quick="${p.slug}" aria-label="Quick add ${p.name}">+</button>
+    </div>
+    <div class="pcard-body">
+      <span class="pcard-kind">${p.kind}</span>
+      <h3 class="pcard-name">${p.name}</h3>
+      <p class="pcard-desc">${p.desc.split('.')[0]}.</p>
+      <div class="pcard-price">${fmt(p.price)}</div>
+    </div>
+  </article>`;
+}
+function renderStrips() {
+  document.getElementById('stripGear').innerHTML = PRODUCTS.filter(p => p.cat === 'gear').map(cardHTML).join('');
+  document.querySelectorAll('.pcard').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('[data-quick]')) return;
+      openModal(card.dataset.slug);
+    });
+  });
+  document.querySelectorAll('[data-quick]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const p = PRODUCTS_INDEX[btn.dataset.quick];
+      if (VARIANTS[p.slug]) { openModal(p.slug); return; }
+      addToCart(p, null);
+      toast(`${p.name} added`);
+    });
+  });
+}
+
+// ─── Modal ───
+let modalProduct = null, modalOpt = null, modalTier = null;
+function openModal(slug) {
+  const p = PRODUCTS_INDEX[slug];
+  if (!p) return;
+  modalProduct = p; modalOpt = null; modalTier = null;
+  document.getElementById('modalImg').src = `images/${p.img}`;
+  document.getElementById('modalImg').alt = p.name;
+  document.getElementById('modalKind').textContent = p.kind;
+  document.getElementById('modalName').textContent = p.name;
+  document.getElementById('modalPrice').textContent = fmt(p.price);
+  document.getElementById('modalDesc').textContent = p.desc;
+  document.getElementById('modalDisc').hidden = !p.supplement;
+  const optWrap = document.getElementById('optWrap');
+  const opts = document.getElementById('opts');
+  const add = document.getElementById('modalAdd');
+  const v = VARIANTS[p.slug];
+  if (v && v.tiers) {
+    optWrap.hidden = false;
+    document.getElementById('optLabel').textContent = v.label;
+    opts.innerHTML = v.tiers.map(t => `<button class="opt-chip" data-tier="${t.id}">${t.label} · ${fmt(t.price)}</button>`).join('');
+    const selectTier = (t, chip) => {
+      opts.querySelectorAll('.opt-chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      modalOpt = t.label;
+      modalTier = t;
+      document.getElementById('modalPrice').textContent = fmt(t.price);
+      add.disabled = false;
+      add.textContent = `Add ${t.label}, ${fmt(t.price)}`;
+    };
+    opts.querySelectorAll('.opt-chip').forEach(chip => {
+      const t = v.tiers.find(x => x.id === chip.dataset.tier);
+      chip.addEventListener('click', () => selectTier(t, chip));
+    });
+    const defChip = opts.querySelector(`.opt-chip[data-tier="${v.defaultId}"]`);
+    const defTier = v.tiers.find(x => x.id === v.defaultId);
+    if (defChip && defTier) selectTier(defTier, defChip);
+  } else if (v) {
+    optWrap.hidden = false;
+    document.getElementById('optLabel').textContent = v.label;
+    opts.innerHTML = v.options.map(o => `<button class="opt-chip" data-opt="${o}">${o}</button>`).join('');
+    opts.querySelectorAll('.opt-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        opts.querySelectorAll('.opt-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        modalOpt = chip.dataset.opt;
+        add.disabled = false;
+        add.textContent = `Add ${p.name}, ${modalOpt}`;
+      });
+    });
+    add.disabled = true;
+    add.textContent = `Select ${v.label}`;
+  } else {
+    optWrap.hidden = true;
+    add.disabled = false;
+    add.textContent = `Add to Bag, ${fmt(p.price)}`;
+  }
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('modal').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('modalBg').classList.remove('open');
+  document.getElementById('modal').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalBg').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeCart(); } });
+document.getElementById('modalAdd').addEventListener('click', () => {
+  if (!modalProduct) return;
+  if (VARIANTS[modalProduct.slug] && !modalOpt) return;
+  addToCart(modalProduct, modalOpt, modalTier ? modalTier.price : null);
+  closeModal();
+  toast(`${modalProduct.name}${modalOpt ? ' · ' + modalOpt : ''} added`);
+});
+
+// ─── Spotlight supplement tier selector ───
+(function() {
+  const tierWrap = document.getElementById('spotTiers');
+  const priceEl = document.getElementById('spotPrice');
+  const addBtn = document.getElementById('spotAdd');
+  if (!tierWrap || !addBtn) return;
+  let chosen = SUPP_TIERS.find(t => t.id === SUPP_DEFAULT);
+  function paint() {
+    tierWrap.querySelectorAll('[data-tier]').forEach(b => {
+      const on = b.dataset.tier === chosen.id;
+      b.classList.toggle('btn-primary', on);
+      b.classList.toggle('btn-pack', !on);
+    });
+    priceEl.innerHTML = `${fmt(chosen.price)} <span>/ ${chosen.label.toLowerCase()}</span>`;
+    addBtn.textContent = `Add ${chosen.label}, ${fmt(chosen.price)}`;
+  }
+  tierWrap.querySelectorAll('[data-tier]').forEach(b => {
+    b.addEventListener('click', () => {
+      chosen = SUPP_TIERS.find(t => t.id === b.dataset.tier);
+      paint();
+    });
+  });
+  addBtn.addEventListener('click', () => {
+    const p = PRODUCTS_INDEX['circulation'];
+    addToCart(p, chosen.label, chosen.price);
+    toast(`${p.name} · ${chosen.label} added`);
+  });
+  paint();
+})();
+
+// ─── Cart ───
+function addToCart(p, opt, priceOverride) {
+  const price = (priceOverride != null) ? priceOverride : p.price;
+  const existing = cart.find(l => l.slug === p.slug && l.opt === (opt || null));
+  if (existing) existing.qty += 1;
+  else cart.push({ slug: p.slug, name: p.name, price: price, opt: opt || null, qty: 1 });
+  saveCart(cart); renderCart(); openCart();
+}
+function removeLine(slug, opt) { cart = cart.filter(l => !(l.slug === slug && l.opt === opt)); saveCart(cart); renderCart(); }
+function changeQty(slug, opt, d) {
+  const l = cart.find(x => x.slug === slug && x.opt === opt);
+  if (!l) return;
+  l.qty = Math.max(0, l.qty + d);
+  if (l.qty === 0) cart = cart.filter(x => !(x.slug === slug && x.opt === opt));
+  saveCart(cart); renderCart();
+}
+function renderCart() {
+  const items = document.getElementById('cartItems');
+  const foot = document.getElementById('cartFoot');
+  const count = cart.reduce((s, l) => s + l.qty, 0);
+  const cc = document.getElementById('bagCount');
+  cc.textContent = count; cc.classList.toggle('empty', count === 0);
+  if (cart.length === 0) {
+    items.innerHTML = `<div class="cart-empty"><p>Your bag is empty.</p><span>Grab a grip and get on court.</span></div>`;
+    foot.hidden = true; return;
+  }
+  items.innerHTML = cart.map(l => {
+    const p = PRODUCTS_INDEX[l.slug];
+    const meta = l.opt ? l.opt : (p ? p.kind : '');
+    return `
+    <div class="cart-line">
+      <div class="cart-line-img"><img src="images/${p ? p.img : ''}" alt="${l.name}"></div>
+      <div class="cart-line-info">
+        <div class="cart-line-top">
+          <div><div class="cart-line-name">${l.name}</div><div class="cart-line-meta">${meta}</div></div>
+          <div class="cart-line-price">${fmt(l.price * l.qty)}</div>
+        </div>
+        <div class="cart-line-bottom">
+          <div class="qty">
+            <button data-act="dec" data-slug="${l.slug}" data-opt="${l.opt || ''}">−</button>
+            <span>${l.qty}</span>
+            <button data-act="inc" data-slug="${l.slug}" data-opt="${l.opt || ''}">+</button>
+          </div>
+          <button class="cart-remove" data-act="rem" data-slug="${l.slug}" data-opt="${l.opt || ''}">Remove</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  items.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const opt = btn.dataset.opt || null;
+      if (btn.dataset.act === 'inc') changeQty(btn.dataset.slug, opt, +1);
+      if (btn.dataset.act === 'dec') changeQty(btn.dataset.slug, opt, -1);
+      if (btn.dataset.act === 'rem') removeLine(btn.dataset.slug, opt);
+    });
+  });
+  document.getElementById('cartTotal').textContent = fmt(cartTotal(cart));
+  foot.hidden = false;
+}
+function openCart() { document.getElementById('cart').classList.add('open'); document.getElementById('cart').setAttribute('aria-hidden', 'false'); }
+function closeCart() { document.getElementById('cart').classList.remove('open'); document.getElementById('cart').setAttribute('aria-hidden', 'true'); }
+document.getElementById('bagOpen').addEventListener('click', openCart);
+document.getElementById('cartClose').addEventListener('click', closeCart);
+
+// ─── Toast ───
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span class="ok">✓</span>${msg}`;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── Reveal ───
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+}, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ─── Loud banner rotation ───
+(function() {
+  const msgs = document.querySelectorAll('.loud-msg');
+  if (msgs.length < 2) return;
+  let i = 0;
+  setInterval(() => { msgs[i].classList.remove('active'); i = (i + 1) % msgs.length; msgs[i].classList.add('active'); }, 3200);
+})();
+
+// ─── Init ───
+document.getElementById('year').textContent = new Date().getFullYear();
+renderStrips();
+renderCart();
+</script>
+</body>
+</html>
